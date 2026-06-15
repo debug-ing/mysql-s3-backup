@@ -5,7 +5,7 @@ set -euo pipefail
 
 MYSQL_PORT="${MYSQL_PORT:-3306}"
 S3_PREFIX="${S3_PREFIX:-/}"
-S3_STORAGE_CLASS="${S3_STORAGE_CLASS-STANDARD_IA}"
+S3_STORAGE_CLASS="${S3_STORAGE_CLASS-}"
 
 # --- Parse DATABASE_URL if set ---
 
@@ -151,7 +151,6 @@ for db in "${databases[@]}"; do
         echo "Upload attempt $attempt failed, retrying in 5s..." >&2
         sleep 5
     done
-
     echo "Uploaded successfully."
     rm -f "$dump_file"
 done
