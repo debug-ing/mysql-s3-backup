@@ -81,6 +81,10 @@ fi
 
 mysqldump_args=(-u "$MYSQL_USER" --no-tablespaces)
 
+if [[ "${MYSQL_SSL_DISABLED:-false}" == "true" ]]; then
+    mysqldump_args+=("--ssl=0")
+fi
+
 if [[ -n "${MYSQL_SOCKET:-}" ]]; then
     mysqldump_args+=(--socket "$MYSQL_SOCKET")
 else
@@ -90,6 +94,7 @@ fi
 if [[ -n "${MYSQL_PASSWORD:-}" ]]; then
     mysqldump_args+=("--password=${MYSQL_PASSWORD}")
 fi
+
 
 # --- Build s5cmd arguments ---
 
