@@ -44,11 +44,13 @@ The service is configured using environment variables:
 Configure one of the following:
 
 **Option 1: Using DATABASE_URL**
+
 ```
 DATABASE_URL=mysql://user:password@hostname:port/database?unix_socket=/path/to/socket
 ```
 
 **Option 2: Using individual parameters**
+
 ```
 MYSQL_HOST=hostname
 MYSQL_PORT=3306 (optional, defaults to 3306)
@@ -105,6 +107,7 @@ services:
       - MYSQL_USER=backup_user
       - MYSQL_PASSWORD=backup_password
       - MYSQL_DATABASE=my_database
+      - MYSQL_SSL_DISABLED=false
       - S3_BUCKET=my-backup-bucket
       - S3_PREFIX=backups/mysql
       - AWS_ACCESS_KEY_ID=your-access-key
@@ -123,6 +126,7 @@ services:
       - MYSQL_USER=backup_user
       - MYSQL_PASSWORD=backup_password
       - MYSQL_DATABASE=app_db,analytics_db
+      - MYSQL_SSL_DISABLED=false
       - S3_BUCKET=my-backup-bucket
       - S3_PREFIX=backups/mysql
       - AWS_ACCESS_KEY_ID=your-access-key
@@ -141,6 +145,7 @@ services:
       - MYSQL_USER=backup_user
       - MYSQL_PASSWORD=backup_password
       - MYSQL_DATABASE=my_database
+      - MYSQL_SSL_DISABLED=false
       - S3_BUCKET=my-b2-bucket
       - S3_PREFIX=backups/mysql
       - S3_ENDPOINT_URL=https://s3.us-west-004.backblazeb2.com
@@ -166,45 +171,49 @@ kind: CronJob
 metadata:
   name: mysql-backup
 spec:
-  schedule: "0 2 * * *"  # Run daily at 2 AM
+  schedule: "0 2 * * *" # Run daily at 2 AM
   jobTemplate:
     spec:
       template:
         spec:
           containers:
-          - name: mysql-backup
-            image: joanfabregat/mysql-s3-backup
-            env:
-            - name: MYSQL_HOST
-              value: "db-service"
-            - name: MYSQL_USER
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-backup-secrets
-                  key: username
-            - name: MYSQL_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-backup-secrets
-                  key: password
-            - name: MYSQL_DATABASE
-              value: "production_db"
-            - name: S3_BUCKET
-              value: "company-backups"
-            - name: S3_PREFIX
-              value: "mysql/daily"
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: access_key
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: secret_key
-            - name: AWS_DEFAULT_REGION
-              value: "us-west-1"
+            - name: mysql-backup
+              image: joanfabregat/mysql-s3-backup
+              env:
+                - name: MYSQL_HOST
+                  value: "db-service"
+                - name: MYSQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-backup-secrets
+                      key: username
+                - name: MYSQL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-backup-secrets
+                      key: password
+                - name: MYSQL_DATABASE
+                  value: "production_db"
+                - name: S3_BUCKET
+                  value: "company-backups"
+                - name: S3_PREFIX
+                  value: "mysql/daily"
+                - name: MYSQL_SSL_DISABLED
+                  value: "false"
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-secrets
+                      key: access_key
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-secrets
+                      key: secret_key
+                - name: AWS_DEFAULT_REGION
+                  value: "us-west-1"
+                - name: S3_ENDPOINT_URL
+                  value: ""
           restartPolicy: OnFailure
 ```
 
@@ -213,11 +222,13 @@ spec:
 The service provides logs of the backup process. All output goes to stdout/stderr for container logging systems to capture.
 
 Successful backups will be uploaded to your S3 bucket with filenames in the format:
+
 ```
 [S3_PREFIX]/YYYY-MM-DDTHHMMSSz.sql.gz
 ```
 
 When backing up multiple databases (comma-separated `MYSQL_DATABASE`), each dump is uploaded under a database-specific subdirectory:
+
 ```
 [S3_PREFIX]/[DATABASE]/YYYY-MM-DDTHHMMSSz.sql.gz
 ```
